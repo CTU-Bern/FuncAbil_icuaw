@@ -1,0 +1,32 @@
+varname;descr
+ICUAW_last;Presence of ICU-aquired weakness (MRC-SS<48)
+FIM_ICU;FIM at ICU discharge (18-126)
+TUG_hosp; Timed 'Up & Go' Test (s)
+six_MWT_effect; effective value of the 6 Minute Walking Distance 
+Pred_perc_6MW; age-predicted 6 Minute Walking Distance in %
+FIM_hosp_effect; effective value of the FIM at hospital discharge (18-126)
+pfi;SF-36 physical functioning (0-100)
+rolph;SF-36 role physical (0-100)
+pain;SF-36 bodily pain (0-100)
+ghp;SF-36 general health (0-100)
+vital;SF-36 vitality (0-100)
+social;SF-36 social functioning (0-100)
+rolem;SF-36 role emotional (0-100)
+mhi;SF-36 mental health (0-100)
+ksk;SF-36 physical health sum-score
+ksk_de;SF-36 physical health sum-score based on German-norm 1994
+psk;SF-36 mental health sum-score
+psk_de;SF-36 mental health sum-score based on German-norm 1994
+LOS_hosp;Length of stay hospital (days)
+LOS_hosp_ICUdis;Length of stay post ICU discharge (days)
+death_specif; death specification
+death_specif:6-months; death within 6 months
+death_specif:hospital; in-hospital death
+death_specif:ICU; ICU death
+readm; ICU readmissions
+disc_dest;Hospital discharge destination
+disc_dest:died;     died
+disc_dest:external hospital;     external hospital
+disc_dest:home;     home
+disc_dest:rehabilitation;     rehabilitation
+Trach_W;Tracheotomy

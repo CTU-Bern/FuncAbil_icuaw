@@ -1,0 +1,27 @@
+varname;descr
+ICUAW_last;Presence of ICU-aquired weakness (MRC-SS<48)
+MRC_SS_last; MRC sum-score at ICU discharge (0-60)
+rand_group;Randomized to non-standard intervention
+age;Age (years)
+sex;Gender male
+bmi;BMI (kg/m2)
+gewicht;Weight (kg)
+adm_code;ICU diagnosis on ICU admission
+adm_code:gastroenterology;     gastroenterology
+adm_code:heart surgery;     heart surgery
+adm_code:hemodynamic insufficiency;     hemodynamic insufficiency
+adm_code:neurology / neurosurgery;     neurology / neurosurgery
+adm_code:other;     other
+adm_code:other surgery;     other surgery
+adm_code:respiratory insufficiency;     respiratory insufficiency
+adm_code:trauma;     trauma
+apache_2;APACHE II score (0-71)
+sofa_score;SOFA score
+days.incl;ICU days until study inclusion
+ADL_restr;Restricted in activities of daily living
+NYHA_symp;NYHA symptoms (stage 2 to 4)
+Dyspnoe;Dyspnoea symptoms
+Hem_malign;Hematologic malignancy
+Immuno;Immunosuppression
+Liver;Liver disease
+chron_dial;Chronic dialysis

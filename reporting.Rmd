@@ -1,0 +1,1412 @@
+---
+title: "Report producing figures and tables for 'Functional ability and quality of life in critical illness survivors with intensive care unit acquired weakness: a secondary analysis of a randomised controlled trial' "
+author: "Irina Irincheeva, Alan Haynes (revision, Jan 2020), CTU Bern"
+date: "`r Sys.setlocale('LC_TIME', 'English'); today <- Sys.Date(); format(today, format='%B %d, %Y')`"
+output: word_document
+---
+
+
+```{r reading the data, message=FALSE, warning=FALSE, include=FALSE}
+rm(list = ls())
+xlsToRead <- "../01_Original_data_834/minDta.xlsx" 
+# please use the data you get on BORIS under 
+
+icuaw <- openxlsx::read.xlsx(xlsxFile = xlsToRead, sheet = 1, 
+                                colNames = TRUE, na.strings = "")
+
+
+library(dplyr)
+library(ggplot2)
+library(captioner)
+fig_nums <- captioner(prefix = "Figure")
+table_nums <- captioner(prefix = "Table")
+
+table_nums(name = "bsl_tab_per_MRCgroup",  display = FALSE) 
+table_nums(name = "bsl_tab_per_missing", display = FALSE)
+table_nums(name = "outcomes_per_groupe", display = FALSE)
+table_nums(name = "out_tab_per_missing", display = FALSE)
+table_nums(name = "six_MWT_effect_paiwise_WMW", display = FALSE)
+table_nums(name = "FIM_hosp_effect_Tab_paiwise_WMW", display = FALSE)
+table_nums(name = "risks_tab", display = FALSE)
+
+fig_nums(name = "six_MWT_effect_paiwise_bxp", display = FALSE)
+fig_nums(name = "FIM_hosp_effect_paiwise__WMW_bxp", display = FALSE)
+
+# icuaw$MRC_group[which(icuaw$death_specif==2)] <- NA
+# icuaw$miss_why[which(icuaw$death_specif==2)] <- 1
+
+```
+
+## Abstract
+
+
+## Abbreviations
+
+
+Abbreviation  | Full name
+------------- | -------------
+APACHE        |	Acute Physiology and Chronic Health Evaluation
+HFV		        | Humanforschungsverordnung
+ICU		        | Intensive care unit
+ICUAW	        | Intensive care unit acquired weakness
+MRC		        | Medical Research Council
+MRC-SS        | Medical Research Council Sum Score
+SF-36		      | Short Form 36
+SOFA	        |	Sequential Organ Failure Assessment
+TISS	        |	Therapeutic Intervention Scoring System
+
+## Introduction
+
+The aims of this study are first, to identify risk factors for ICUAW in mechanically ventilated, critically ill adults and second, to characterise the relationship between muscle weakness at ICU discharge and functional outcomes at hospital discharge and after 6 months in ICU survivors that had previously been independent. 
+
+## Data collection
+
+This is a secondary analysis of randomised controlled trial using already collected health-related data to investigate the finding of a very high ICUAW incidence (59%) in this population. To investigate our study aims we will reuse demographic and diagnostic data, ICU and hospital data as well as data from individual physiotherapy sessions, physical functioning tests (e.g. for muscle strength, functional capacity and independence) and health-related quality of life. 
+
+All data for this secondary analysis were collected as part of a randomised controlled trial that compared very early endurance and resistance training combined with mobilisation to usual care in mechanically ventilated, critically ill adults. The trial was conducted in the mixed ICU of a large, tertiary academic centre in Switzerland (Department of Intensive Care Medicine, Inselspital, Bern University Hospital) between October 8, 2012 and April 5, 2016. No significant differences were found in the primary or secondary outcomes, though participants of the experimental group appeared to have better mental health at 6-months after hospital discharge [21]. The initial trial has been approved by the local ethics committee (KEK-BE 122/12, ID PB_2016-00888) and written informed consent for the intervention and data collection was obtained from all participants or their representatives (deferred consent within 72h). However, neither the study protocol, nor the participant information did specify any secondary analyses. 
+
+The first part of this secondary analysis intends to identify common risk factors for ICUAW in mechanically ventilated, critically ill adults. Risk factors were chosen from previous publications and based on their clinical relevance. To avoid overfitting the linear regression model (with response being the MRC-SS), we restricted the factors to 8 (with a rule of thumb of minimum 10 observations per factor). Accordingly, the following factors (n=8) will be investigated with linear multiple regression methods on their effect MRC-SS:
+1)	 SOFA score at study inclusion
+2)	 Gender
+3)	 Length of ICU stay
+4)	 Mobilisation to edge-of-bed during ICU stay (yes / no)
+5)	 Oxygen consumption during physiotherapy
+6)	 Days with sedation (%)
+7)	 Previous restrictions in activities of daily living (yes / no)
+8)	 Randomisation to intervention group with endurance training (yes / no)
+
+The second part aims to investigate differences in subsequent functional outcomes for patients with no-ICUAW (MRC-SS > 48), moderate ICUAW (MRC-SS 36-48) and severe ICUAW (MRC-SS <36). These differences are analyzed with Kruskal-Wallis test for continuous values and with chi-cquared test for categorical or binary values. Primary outcomes of interest are functional independence evaluated with the Functional Independence Measure (FIM) [26] and functional capacity assessed with the 6-Minute Walking Test (6MWT) [27] at hospital discharge, secondary outcomes are participants’ quality of life determined with the Short Form 36 (SF-36) [28] 6 months after hospital discharge and finally, hospital length of stay and 6-month mortality. Furthermore, we test the significance of the correlation (Pearson correlation) between ICUAW at ICU discharge and functional independence evaluated with the Functional Independence Measure (FIM) at ICU discharge. 
+
+
+
+## Results
+
+### Baseline table per group, patients with observed MRC-SS
+
+```{r tables, echo=FALSE, message=FALSE, warning=FALSE}
+
+source("table_fcts.R")
+binVars_yes <- c("ADL_restr", "NYHA_symp", "Dyspnoe", "Hem_malign", "Immuno", "Liver", 
+                 "chron_dial", "ICUAW_last", "rand_group")
+binVars_sex <- c("sex")
+categorical_vars <- c("adm_code", "death_specif", "miss_why")
+bs_vars <- c('ICUAW_last', 'rand_group', 'age', 'sex', 'bmi', 'gewicht', 'adm_code', 'apache_2', 'sofa_score', 'days.incl', 'ADL_restr', 'NYHA_symp', 'Dyspnoe', 'Hem_malign', 'Immuno', 'Liver', 'chron_dial')
+
+ out_vars <- c('ICUAW_last', 'FIM_ICU', 'TUG_hosp', 'six_MWT_effect', 'Pred_perc_6MW', 'FIM_hosp_effect', 'pfi', 'rolph', 'pain', 'ghp', 'vital', 'social', 'rolem', 'mhi', 'ksk', 'psk', 'LOS_hosp', 'death_specif',  'readm', 'disc_dest', 'Trach_W', "ksk_de", "psk_de", "LOS_hosp_ICUdis")
+
+
+bs_vars <- unique(c(bs_vars, binVars_yes, binVars_sex, categorical_vars, "MRC_SS_last" ))
+
+icuaw[ ,c(binVars_yes)] <- 
+  apply(icuaw[ ,c(binVars_yes)], MARGIN = 2, 
+        FUN = function(x) { x[x==1] <- "yes"; x[x==0] <- "no"; as.factor(as.character(x)); } )
+
+icuaw$sex <- as.factor(ifelse(icuaw$sex==1, "male", "female"))
+icuaw$MRC_group <- as.character(icuaw$MRC_group)
+
+icuaw$MRC_group_char <- 
+case_when(
+  icuaw$MRC_group == 1 ~ "severe weakness (MRC-SS 0-35)",
+  icuaw$MRC_group == 2 ~ "moderate weakness (MRC-SS 36-47)",
+  icuaw$MRC_group == 3 ~ "no weakness (MRC-SS 48-60)",
+  is.na(icuaw$MRC_group) ~ "missing",
+  TRUE ~ as.character(icuaw$MRC_group)
+)
+icuaw$MRC_group_char <- as.factor(icuaw$MRC_group_char)
+icuaw$MRC_group <- factor(icuaw$MRC_group, exclude = "NA")
+
+icuaw$adm_code <- 
+case_when(
+  icuaw$adm_code == 10 ~ "heart surgery",
+  icuaw$adm_code == 11 ~ "neurology / neurosurgery",
+  icuaw$adm_code == 12 ~ "other surgery",
+  icuaw$adm_code == 13 ~ "gastroenterology",
+  icuaw$adm_code == 14 ~ "trauma",
+  icuaw$adm_code == 15 ~ "respiratory insufficiency",
+  icuaw$adm_code == 16 ~ "hemodynamic insufficiency",
+  icuaw$adm_code == 17 ~ "other",
+  TRUE ~ as.character(icuaw$adm_code)
+)  
+  icuaw$adm_code <- as.factor(icuaw$adm_code)
+  
+  icuaw$death_specif <- 
+case_when(
+  icuaw$death_specif == 0 ~ "survived",
+  icuaw$death_specif == 1 ~ "ICU",
+  icuaw$death_specif == 2 ~ "hospital",
+  icuaw$death_specif == 3 ~ "6-months",
+  TRUE ~ as.character(icuaw$death_specif)
+)  
+  icuaw$death_specif <- as.factor(icuaw$death_specif)
+
+  icuaw$miss_why <- 
+case_when(
+  icuaw$miss_why == 0 ~ "present",
+  icuaw$miss_why == 1 ~ "died",
+  icuaw$miss_why == 2 ~ "Unable to follow commands",
+  icuaw$miss_why == 3 ~ "other",
+  TRUE ~ as.character(icuaw$miss_why)
+)  
+  icuaw$miss_why <- as.factor(icuaw$miss_why)
+  
+    
+bTab <- descrTab(df = icuaw[which(icuaw$MRC_group %in% c(1,2,3)),bs_vars], 
+                 quVec = c(0.25, 0.75), 
+                 CIcov = 0.95, 
+                 catVars = categorical_vars, 
+                 binVars_yes = binVars_yes, 
+                 binVars_no = NULL, binVars_sex = binVars_sex)
+
+for (group_name in unique(names(table(icuaw$MRC_group))))
+{
+  if (!is.na(group_name)){
+      bTab.gr <- descrTab(df = icuaw[which(icuaw$MRC_group==group_name), bs_vars], 
+                 quVec = c(0.25, 0.75), 
+                 CIcov = 0.95, 
+                 catVars = categorical_vars, 
+                 binVars_yes = binVars_yes, 
+                 binVars_no = NULL, binVars_sex = binVars_sex)
+
+  } 
+   bTab <- merge(x = bTab, y = bTab.gr, by = "varname", 
+                suffixes = c("",group_name), all.x = TRUE)
+
+ }
+
+bTab <- bTab[ ,c("varname", "n", "median", "n1", "median1", "n2","median2", "n3","median3")]
+
+bTab$pvalue <- NA
+
+cat_Vars <- c(binVars_yes, binVars_sex, categorical_vars )
+cont_vars <- setdiff(c(bs_vars, out_vars), c(cat_Vars, "record_id", "MRC_SS_last", "MRC_group", "ICUAW_last"))
+
+
+for (v.name in bTab$varname)
+{
+  k <- which(bTab$varname == v.name)
+  if (v.name %in% c(cont_vars)){
+    bTab$pvalue[k] <- kruskal.test(as.formula(  paste0(v.name, " ~ MRC_group" ) ), 
+                                   data = icuaw)$p.value
+  } else if (v.name %in% cat_Vars) {
+    gr <- ftable(icuaw$MRC_group, icuaw[ ,v.name])
+    bTab$pvalue[k] <- chisq.test(gr)$p.value
+  }
+}
+
+bTab$pvalue <- ifelse(!is.na(bTab$pvalue), sprintf("%1.3f", bTab$pvalue), "")  # round(bTab$pvalue, digits = 3)
+# bTab$pvalue[which(bTab$pvalue < 0.001)] <- "< 0.001"
+bTab$pvalue[which(is.na(bTab$pvalue))] <- ""
+bTab$pvalue[which(bTab$varname == "MRC_SS_last")] <- ""
+bTab$pvalue[which(bTab$varname == "ICUAW_last")] <- ""
+
+bs_descr <- read.table(file = "../04_prepared_data_xx/bs_vars.csv", sep = ";", header = TRUE)
+
+varOrd <- match(bs_descr$varname, bTab$varname)
+# bTab$varname[varOrd]
+bTab <- bTab[varOrd, ]
+bTab$descr <- bs_descr$descr
+bTab[which(bTab$varname %in% c("chron_dial")), "pvalue"] <- ""
+
+knitr::kable(bTab[ , c("descr", "n", "median", 
+                       "n1", "median1", 
+                       "n2", "median2",
+                       "n3", "median3",
+                       "pvalue")],
+             digits = 3, row.names = FALSE,
+             col.names = c("variable", "n total", "All: median [25%, 75%] or frequencies (%)", 
+                           "n", "severe weakness", 
+                           "n", "moderate weakness", 
+                           "n", "no weakness",
+                           "p-value" ))
+
+pvalTab <- bTab[, c("varname", "pvalue")]
+
+```
+
+
+`r table_nums(name = "bsl_tab_per_MRCgroup", caption = "Common and per MRC-SS group baseline characteristics for all the subjects. Group separation is as follows: severe weakness (MRC-SS 0-35); moderate weakness (MRC-SS 36-47); no weakness (MRC-SS 48-60). The testing for continuous variables is performed with Kruskal–Wallis test for the null hypothesis of equal distributions in the three groups; for categorical and binary variables with Pearson's chi-squared test with the null hypothesis of independence between the tested condition and MRC-SS groups. Except for liver disease we observe no significant difference in baseline data between the three MRC-SS groups.")`
+
+
+
+
+### Baseline table per missing status of MRC-SS and reason of missing MRC-SS
+
+```{r missingness tab, echo=FALSE, message=FALSE, warning=FALSE}
+
+icuaw$MRC_SS_miss <- ifelse(icuaw$miss_why!="present", 1, 0)
+binVars_yes <- c(binVars_yes)
+icuaw$death <- ifelse(icuaw$death==1, "yes", "no")
+icuaw$readm <- ifelse(icuaw$readm==1, "yes", "no")
+
+bTab <- descrTab(df = icuaw[which(icuaw$MRC_SS_miss==0),c(bs_vars)], 
+                 quVec = c(0.25, 0.75), 
+                 CIcov = 0.95, 
+                 catVars = categorical_vars, 
+                 binVars_yes = binVars_yes, 
+                 binVars_no = NULL, binVars_sex = binVars_sex)
+
+bTab.gr <- descrTab(df = icuaw[which(icuaw$MRC_SS_miss==1), c(bs_vars)], 
+                 quVec = c(0.25, 0.75), 
+                 CIcov = 0.95, 
+                 catVars = categorical_vars, 
+                 binVars_yes = binVars_yes, 
+                 binVars_no = NULL, binVars_sex = binVars_sex)
+bTab <- merge(x = bTab, y = bTab.gr, by = "varname", 
+                suffixes = c("","miss"), all.x = TRUE)
+
+bTab <- bTab[ ,c("varname", "n", "median", "nmiss", "medianmiss")]
+
+bTab$pvalue <- NA
+
+cat_Vars <- c(binVars_yes, binVars_sex)
+cont_vars <- setdiff(c(bs_vars), c(cat_Vars, "record_id", "MRC_SS_last", "MRC_group", "ICUAW_last"))
+
+for (v.name in bTab$varname)
+{
+  k <- which(bTab$varname == v.name)
+  if (v.name %in% c(cont_vars)){
+    bTab$pvalue[k] <- kruskal.test(as.formula(  paste0(v.name, " ~ MRC_SS_miss" ) ), 
+                                   data = icuaw)$p.value
+  } else if (v.name %in% cat_Vars) {
+    gr <- ftable(icuaw$MRC_SS_miss, icuaw[ ,v.name])
+    bTab$pvalue[k] <- chisq.test(gr)$p.value
+  }
+}
+
+bTab$pvalue <- ifelse(!is.na(bTab$pvalue), sprintf("%1.3f", bTab$pvalue), "") # round(bTab$pvalue, digits = 3)
+# bTab$pvalue[which(bTab$pvalue < 0.001)] <- "< 0.001"
+bTab$pvalue[which(is.na(bTab$pvalue))] <- ""
+bTab$pvalue[which(bTab$varname == "MRC_SS_last")] <- ""
+bTab$pvalue[which(bTab$varname == "ICUAW_last")] <- ""
+
+miss_lab <- setdiff(names(unclass(table(icuaw$miss_why))), "present")
+for (group_name in miss_lab)
+{
+  if (!is.na(group_name)){
+      bTab.gr <- descrTab(df = icuaw[which(icuaw$miss_why==group_name), bs_vars], 
+                 quVec = c(0.25, 0.75), 
+                 CIcov = 0.95, 
+                 catVars = categorical_vars, 
+                 binVars_yes = binVars_yes, 
+                 binVars_no = NULL, binVars_sex = binVars_sex)
+
+  } 
+   bTab <- merge(x = bTab, y = bTab.gr, by = "varname", 
+                suffixes = c("",group_name), all.x = TRUE)
+
+ }
+
+
+
+bs_descr <- read.table(file = "../04_prepared_data_xx/bs_vars.csv", sep = ";", header = TRUE)
+
+varOrd <- match(c(as.character(bs_descr$varname)), bTab$varname)
+bTab <- bTab[varOrd, ]
+bTab$descr <- c(as.character(bs_descr$descr))
+bTab[which(bTab$varname %in% c("chron_dial")), "pvalue"] <- ""
+
+knitr::kable(bTab[-which(bTab$varname %in% c("ICUAW_last", "MRC_SS_last")), 
+                  c("descr", "n", "median", "nmiss", "medianmiss", "pvalue",
+                    "ndied", "mediandied", 
+                    "nUnable to follow commands", "medianUnable to follow commands",
+                    "nother", "medianother"
+                    )],
+             digits = 2, row.names = FALSE,
+             col.names = c("variable", "n observed", "Observed MRC-SS: median [25%, 75%] or frequency (%)", "n missing", "Missing MRC-SS: median or frequency", "p-value",
+                           "n died", "Died median or frequency",
+                           "n unable to follow", "Unable to follow median or frequency",
+                           "n other", "Other median or frequency"))
+
+
+```
+
+
+
+
+`r table_nums(name = "bsl_tab_per_missing", caption = "Comparison of baseline characteristics of patients with observed MRC-SS and  patients for whom we could not collect MRC-SS. The column 'p-value' shows the comparison' p-values. The present and missing groups are significantly different with respect to APACHE (missing MRC-SS has higher APACHE), SOFA score (higher SOFA in missing MRC-SS), CRP (lower CRP in missing MRC-SS), creatinin (higher creatinin in missing MRC-SS) and frequency of liver disease (more frequent in missing MRC-SS). The six last columns show further interpretation of differences between present and missing MRC-SS according to three reasons due to which did not collect MRC-SS: APACHE, SOFA and creatinin differences are driven by the 'died' reason; CRP differences by 'unable to follow command' reason; liver disease is equally high in 'died' and 'unable to follow command' reasons. The testing for continuous variables is performed with Kruskal–Wallis test for the null hypothesis of equal distributions in the four groups; for categorical and binary variables with Pearson's chi-squared test with the null hypothesis of independence between the tested condition and MRC-SS groups. Except for liver disease we observe no significant difference in baseline data between the three MRC-SS groups.")`
+
+
+
+
+
+
+### Outcomes comparison table for patients with observed MRC-SS
+
+```{r outcome table, echo=FALSE, message=FALSE, warning=FALSE}
+
+source("table_fcts.R")
+binVars_yes <- c("death", "Trach_W", "ICUAW_last", "readm")
+categorical_vars <- c("disc_dest", "death_specif")
+
+icuaw[ ,c(binVars_yes)] <- 
+  apply(icuaw[ ,c(binVars_yes)], MARGIN = 2, 
+        FUN = function(x) { x[x==1] <- "yes"; x[x==0] <- "no"; as.factor(as.character(x)); } )
+
+
+icuaw$disc_dest <- 
+case_when(
+  icuaw$disc_dest == 1 ~ "external hospital",
+  icuaw$disc_dest == 2 ~ "rehabilitation",
+  icuaw$disc_dest == 3 ~ "home",
+  icuaw$disc_dest == 4 ~ "died",
+  TRUE ~ as.character(icuaw$disc_dest)
+)
+  icuaw$disc_dest <- as.factor(icuaw$disc_dest)
+  bs_descr <- read.table(file = "../04_prepared_data_xx/out_vars.csv", sep = ";", header = TRUE)
+
+  remove_ind <- unique(c(which(grepl("disc_dest:",bs_descr$varname)),
+                         which(grepl("death_specif:",bs_descr$varname)) ))
+ 
+  
+  out_vars <- unique(c(out_vars, binVars_yes, categorical_vars,
+    as.character(bs_descr$varname[-remove_ind])))
+  
+  # out_vars[which(!out_vars %in% colnames(icuaw))]
+bTab <- descrTab(df = icuaw[which(icuaw$MRC_group %in% c(1,2,3)),out_vars], 
+                 quVec = c(0.25, 0.75), 
+                 CIcov = 0.95, 
+                 catVars = categorical_vars, 
+                 binVars_yes = binVars_yes, 
+                 binVars_no = NULL, binVars_sex = NULL)
+
+for (group_name in unique(names(table(icuaw$MRC_group))))
+{
+  if (!is.na(group_name)){
+  bTab.gr <- descrTab(df = icuaw[which(icuaw$MRC_group==group_name), out_vars], 
+                 quVec = c(0.25, 0.75), 
+                 CIcov = 0.95, 
+                 catVars = categorical_vars, 
+                 binVars_yes = binVars_yes, 
+                 binVars_no = NULL, binVars_sex = NULL)
+  } 
+  
+  bTab <- merge(x = bTab, y = bTab.gr, by = "varname", 
+                suffixes = c("",group_name), all.x = TRUE)
+}
+
+bTab <- bTab[ ,c("varname", "n", "median", "n1", "median1", "n2","median2", 
+                 "n3","median3")]
+
+bTab$pvalue <- NA
+
+cat_Vars <- c(binVars_yes, categorical_vars )
+cont_vars <- setdiff(out_vars, c(cat_Vars, "record_id", "MRC_SS_last", "MRC_group", "ICUAW_last"))
+
+for (v.name in bTab$varname)
+{
+  k <- which(bTab$varname == v.name)
+  if (v.name %in% c(cont_vars)){
+    bTab$pvalue[k] <- kruskal.test(as.formula(  paste0(v.name, " ~ MRC_group" ) ), 
+                                   data = icuaw)$p.value
+  } else if (v.name %in% cat_Vars) {
+    gr <- ftable(icuaw$MRC_group, icuaw[ ,v.name])
+    bTab$pvalue[k] <- chisq.test(gr)$p.value
+  }
+}
+
+bTab$pvalue <- ifelse(!is.na(bTab$pvalue), sprintf("%1.3f", bTab$pvalue), "") # round(bTab$pvalue, digits = 3)
+# bTab$pvalue[which(bTab$pvalue < 0.001)] <- "< 0.001"
+bTab$pvalue[which(is.na(bTab$pvalue))] <- ""
+bTab$pvalue[which(bTab$varname == "MRC_SS_last")] <- ""
+bTab$pvalue[which(bTab$varname == "ICUAW_last")] <- ""
+
+
+# Compute Cuzick test p-values
+# remotes::install_github("raredd/rawr") # NEED GITHUB VERSION
+library(rawr)
+
+icuawm <- as.data.frame(icuaw[which(icuaw$MRC_group_char!="missing"), ])
+levels(icuawm$MRC_group_char) <- c(NA, "moderate weakness", "no weakness", "severe weakness")
+icuawm$MRC_group_char <- factor(icuawm$MRC_group_char, 
+                                levels = c("severe weakness", "moderate weakness", "no weakness"))
+
+ vars_to_cuzick <- c("FIM_ICU", "TUG_hosp", "LOS_hosp","six_MWT_effect", 
+                     "FIM_hosp_effect","Pred_perc_6MW", 
+                     "pfi", "rolph", "pain", "ghp", "vital", "social", "rolem", 
+                     "mhi", "ksk", "psk", "ksk_de", "psk_de")
+
+icuawm[ ,unique(c("six_MWT_effect", "FIM_hosp_effect", 
+           vars_to_cuzick))] <- data.frame(lapply(icuawm[ ,unique(c("six_MWT_effect", "FIM_hosp_effect",
+                                                            vars_to_cuzick))], 
+                                               function(x) as.numeric(as.character(x))))
+ 
+
+ six_MWT_cuzick_p <- sprintf("%1.3f", cuzick.test(six_MWT_effect ~ MRC_group_char, data = icuawm)$p.value)
+ six_MWT_lab <- paste0("Cuzick test p-value = ", six_MWT_cuzick_p )
+ 
+ FIM_cuzick_p <- sprintf("%1.3f", cuzick.test(FIM_hosp_effect ~ MRC_group_char, data = icuawm)$p.value)
+ FIM_lab <- paste0("Cuzick test p-value = ", FIM_cuzick_p )
+ 
+
+for (var_name in vars_to_cuzick)
+{
+  eval(parse(text = paste0("cuz_p_val <- cuzick.test(", var_name, " ~ MRC_group_char, data = icuawm)$p.value")))
+  # if (var_name %in% vars_inv_rel)   eval(parse(text = paste0("cuz_p_val <- cuzick.test(", var_name, " ~ MRC_group_char, data = icuawm, alternative = 'less')$p.value")))
+  cuzick_p <- sprintf("%1.3f", cuz_p_val)
+  bTab$pvalue[which(bTab$varname == var_name)] <- cuzick_p  
+  if (var_name == "six_MWT_effect") six_MWT_lab <- paste0("6 Minute Walking Distance, \n Cuzick test p-value = ", cuzick_p)
+  if (var_name == "FIM_hosp_effect") FIM_hosp_lab <- paste0("FIM at hospital discharge, \n Cuzick test p-value = ", cuzick_p)
+  if (var_name == "TUG_hosp") TUG_hosp_lab <- paste0("Timed 'Up & Go' Test (s), \n Cuzick test p-value = ", cuzick_p)
+  if (var_name == "LOS_hosp") LOS_hosp_lab <- paste0("Length of stay hospital (days), \n Cuzick test p-value = ", cuzick_p)
+}
+
+pvalTab <- bTab[c("varname", "pvalue")]
+
+varOrd <- match(bs_descr$varname, bTab$varname)
+bTab <- bTab[varOrd, ]
+bTab$descr <- bs_descr$descr
+
+knitr::kable(bTab[-1, c("descr", "n", "median", 
+                       "n1", "median1", 
+                       "n2", "median2",
+                       "n3", "median3",
+                       "pvalue")],
+             digits = 2, row.names = FALSE,
+             col.names = c("variable", "n total", "Observed: median [25%, 75%] or frequencies (%)", 
+                           "n", "severe weakness", 
+                           "n", "moderate weakness", 
+                           "n", "no weakness", 
+                           "p-value" ))
+
+local_caption <- "Outcomes comparison among MRC-SS groups. For patients who died at readmission MRC-SS and other functional meaasures were available and are, therefore, reported.  Categorical and binary variables testing is performed with Pearson’s chi-squared test (the null hypothesis is independence between the tested condition and MRC-SS groups). Continuous variables testing is performed with non-parametric Cuzick test (the null hypothesis is equal distributions in the three groups against the alternative non-inferiority or non-superiority). For example, when applying Cuzick test to 'FIM at hospital discharge', we rejected the null hypothesis in favour of the following alternative hypothesis: severe weakness FIM < no weakness FIM and severe weakness FIM $\\leq$ moderate weakness FIM $\\leq$ no weakness FIM. Hhen applying Cuzick test to 'LOS at hospital discharge', we rejected the null hypothesis in favour of the following alternative hypothesis: severe weakness LOS < no weakness LOS and severe weakness LOS $\\geq$ moderate weakness LOS $\\leq$ no weakness LOS. "
+
+# Testing of variable 'age-predicted 6 Minute Walking Distance in %' is redundant and is given for  information (this variable is highly correlated with 'effective value of the 6 Minute Walking Distance')
+# 
+ 
+# cor.test(icuawm$six_MWT_effect, icuawm$Pred_perc_6MW)
+# 
+# 	Pearson's product-moment correlation
+# 
+# data:  icuawm$six_MWT_effect and icuawm$Pred_perc_6MW
+# t = 13.623, df = 71, p-value < 2.2e-16
+# alternative hypothesis: true correlation is not equal to 0
+# 95 percent confidence interval:
+#  0.7713062 0.9037040
+# sample estimates:
+#       cor 
+# 0.8504578 
+# 
+```
+
+
+`r table_nums(name = "outcomes_per_groupe", caption = local_caption)`
+
+```{r exploratory boxplots of outcome variables, eval=FALSE, fig.height=10, fig.width=7, message=FALSE, warning=FALSE, include=FALSE}
+
+vars_to_bxp <- c("FIM_ICU", "TUG_hosp", "LOS_hosp",
+                 "pfi", "rolph", "pain", "ghp", "vital", "social", "rolem", "mhi", "ksk", "psk")
+library(reshape2)
+aw_out_bxp <- melt(data = icuawm[ ,c(vars_to_bxp, "MRC_group_char", "record_id")], 
+                   id.vars = c("record_id", "MRC_group_char"))
+
+ggplot(aw_out_bxp, aes(x = MRC_group_char, y = value, fill = MRC_group_char))+
+  geom_boxplot()+
+  geom_jitter(width=0.4, alpha=0.2) +
+  xlab("MRC group")+ 
+  facet_wrap( ~ variable, ncol = 3) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+
+### Available outcomes table per missing status of MRC-SS and reason of missing MRC-SS
+
+```{r missingness outcomes tab, echo=FALSE, message=FALSE, warning=FALSE}
+
+icuaw$MRC_SS_miss <- ifelse(icuaw$miss_why!="present", 1, 0)
+binVars_yes <- c(binVars_yes)
+
+bTab <- descrTab(df = icuaw[which(icuaw$MRC_SS_miss==0), c(out_vars)], 
+                 quVec = c(0.25, 0.75), 
+                 CIcov = 0.95, 
+                 catVars = categorical_vars, 
+                 binVars_yes = binVars_yes, 
+                 binVars_no = NULL, binVars_sex = NULL)
+
+bTab.gr <- descrTab(df = icuaw[which(icuaw$MRC_SS_miss==1), c(out_vars)], 
+                 quVec = c(0.25, 0.75), 
+                 CIcov = 0.95, 
+                 catVars = categorical_vars, 
+                 binVars_yes = binVars_yes, 
+                 binVars_no = NULL, binVars_sex = NULL)
+bTab <- merge(x = bTab, y = bTab.gr, by = "varname", 
+                suffixes = c("","miss"), all.x = TRUE)
+
+bTab <- bTab[ ,c("varname", "n", "median", "nmiss", "medianmiss")]
+
+
+miss_lab <- setdiff(names(unclass(table(icuaw$miss_why))), "present")
+for (group_name in miss_lab)
+{
+  if (!is.na(group_name)){
+      bTab.gr <- descrTab(df = icuaw[which(icuaw$miss_why==group_name), out_vars], 
+                 quVec = c(0.25, 0.75), 
+                 CIcov = 0.95, 
+                 catVars = categorical_vars, 
+                 binVars_yes = binVars_yes, 
+                 binVars_no = NULL, binVars_sex = NULL)
+
+  } 
+   bTab <- merge(x = bTab, y = bTab.gr, by = "varname", 
+                suffixes = c("",group_name), all.x = TRUE)
+
+ }
+
+
+
+out_descr <- read.table(file = "../04_prepared_data_xx/out_vars.csv", sep = ";", header = TRUE)
+
+varOrd <- match(c(as.character(out_descr$varname)), bTab$varname)
+bTab <- bTab[varOrd, ]
+bTab$descr <- c(as.character(out_descr$descr))
+
+knitr::kable(bTab[-which(bTab$varname %in% c("ICUAW_last" )), 
+                  c("descr", "n", "median", "nmiss", "medianmiss", 
+                    #"ndied", "mediandied", 
+                    "nUnable to follow commands", "medianUnable to follow commands",
+                    "nother", "medianother"
+                    )],
+             digits = 2, row.names = FALSE,
+             col.names = c("variable", "n observed", "Observed MRC-SS: median [25%, 75%] or frequency (%)", "n missing", "Missing MRC-SS: median or frequency", 
+                           #☺ "n died", "Died median or frequency",
+                           "n unable to follow", "Unable to follow median or frequency",
+                           "n other", "Other median or frequency"))
+
+
+
+```
+
+
+
+
+`r table_nums(name = "out_tab_per_missing", caption = "Available outcomes for patients with observed MRC-SS and  patients for whom we could not collect MRC-SS. The table does not report the data for 21 died patients who dies before the outcomes were collected. ")`
+
+
+
+
+
+```{r pairwise WMW tests six_MWT_effect, echo=FALSE, message=FALSE, warning=FALSE}
+
+levels(icuaw$MRC_group_char) <- c("missing", "moderate weakness", "no weakness", "severe weakness")
+icuaw$MRC_group_char <- factor(icuaw$MRC_group_char, levels = c("missing", "severe weakness", "moderate weakness", "no weakness"))
+# compare_means(six_MWT_effect ~ MRC_group_char,  data = icuaw)
+my_comparisons <- list(c("moderate weakness", "no weakness"), 
+                       c("severe weakness", "moderate weakness"), 
+                       c("severe weakness", "no weakness"))
+
+# icuaw <- icuaw[-which(icuaw$MRC_group_char == "missing"), ]
+icuaw$six_MWT_effect <- as.numeric(as.character(icuaw$six_MWT_effect))
+six_MWT_effect_Tab <- pairwise.wilcox.test(icuaw$six_MWT_effect, icuaw$MRC_group_char, p.adj = "none")
+six_MWT_effect_Tab$p.value <- as.data.frame( six_MWT_effect_Tab$p.value )
+
+knitr::kable(six_MWT_effect_Tab$p.value[c(2,3) ,
+                                         c("severe weakness", 
+                                           "moderate weakness")],
+             digits = 3, row.names = TRUE,
+             col.names = c(
+               "effective value of the 6 Minute Walking Distance, severe weakness", 
+               "effective value of the 6 Minute Walking Distance, moderate weakness"))
+
+
+
+``` 
+
+`r table_nums(name = "six_MWT_effect_paiwise_WMW", caption = "P-values of pairwise Wilcoxon-Mann-Whitney tests for the effective value of the 6 Minute Walking Distance without adjustment for multiple testing. ")`
+
+
+```{r pairwise boxplots six_MWT_effect, echo=FALSE, fig.height=6, fig.width=5, message=FALSE, warning=FALSE}
+
+library(ggpubr)
+# found this library here:
+# https://www.r-bloggers.com/add-p-values-and-significance-levels-to-ggplots/
+p1 <- ggboxplot(icuaw[which(icuaw$MRC_group_char %in% c("severe weakness", "moderate weakness", 
+                                                        "no weakness")), ], 
+          x = "MRC_group_char", y = "six_MWT_effect",
+          color = "MRC_group_char",  add = "jitter")+ 
+  ylim(0, 800) + ylab("6 Minute Walking Distance") + 
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = NA),
+  panel.grid.major = element_line(colour = "grey85"),
+  panel.ontop = FALSE) +
+  stat_compare_means(comparisons = my_comparisons, label.y = c(660, 700, 740)) + 
+  stat_compare_means(label.y = 800) +
+  rotate_x_text(angle = 45)+ xlab("") +
+  scale_y_continuous(breaks = c(0, 100, 200, 300, 400, 500, 600, 700, 800))
+print(p1)
+
+```
+
+`r fig_nums(name = "six_MWT_effect_paiwise_bxp", caption = "Pairwise comparisons for the effective value of the 6 Minute Walking Distance. ")`
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggsave(filename = file.path("../05_Figures_834", "pairwise boxplots six_MWT_effect.eps"), p1, height=6, width=5, units = "in")
+
+```
+
+
+
+```{r Cuzick six_MWT_effect, echo=FALSE, fig.height=6, fig.width=5, message=FALSE, warning=FALSE}
+
+
+
+p_six_MWT_cuz <- ggboxplot(icuawm, 
+          x = "MRC_group_char", y = "six_MWT_effect",
+          color = "MRC_group_char",  add = "jitter")+ 
+  ylim(0, 800) + ylab("6 Minute Walking Distance") + 
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = NA),
+  panel.grid.major = element_line(colour = "grey85"),
+  panel.ontop = FALSE) +
+  rotate_x_text(angle = 45)+ xlab("") + labs(title = six_MWT_lab) + 
+  scale_y_continuous(breaks = c(0, 100, 200, 300, 400, 500, 600, 700, 800))
+# print(p1)
+
+```
+
+
+
+
+
+
+
+```{r pairwise WMW tests FIM_hosp_effect, echo=FALSE, message=FALSE, warning=FALSE}
+
+icuaw$FIM_hosp_effect <- as.numeric(as.character(icuaw$FIM_hosp_effect))
+FIM_hosp_effect_Tab <- pairwise.wilcox.test(icuaw$FIM_hosp_effect, icuaw$MRC_group_char, p.adj = "none")
+FIM_hosp_effect_Tab$p.value <- as.data.frame( FIM_hosp_effect_Tab$p.value )
+
+knitr::kable(FIM_hosp_effect_Tab$p.value[c(2,3) ,
+                                         c("severe weakness", 
+                                           "moderate weakness")],
+             digits = 3, row.names = TRUE,
+             col.names = c(
+               "effective value of the FIM at hospital discharge, severe weakness", 
+              "effective value of the FIM at hospital discharge, moderate weakness"))
+
+
+
+
+
+```
+
+
+
+`r table_nums(name = "FIM_hosp_effect_Tab_paiwise_WMW", 
+caption = "P-values of pairwise Wilcoxon-Mann-Whitney tests for the effective value of the FIM at hospital discharge (18-126) without adjustment for multiple testing.")`
+
+
+
+```{r pairwise boxplots FIM_hosp_effect, echo=FALSE, fig.height=6, fig.width=5, message=FALSE, warning=FALSE}
+
+library(ggpubr)
+
+p2 <- ggboxplot(icuaw[which(icuaw$MRC_group_char %in% c("severe weakness", "moderate weakness", 
+                                                        "no weakness")), ], 
+          x = "MRC_group_char", y = "FIM_hosp_effect",
+          color = "MRC_group_char",  add = "jitter")+ 
+  ylim(0, 275) + ylab("FIM at hospital discharge") + 
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = NA),
+  panel.grid.major = element_line(colour = "grey85"),
+  panel.ontop = FALSE) +
+  stat_compare_means(comparisons = my_comparisons, label.y = c(150, 175, 200)) + 
+  stat_compare_means(label.y = 225) +
+  rotate_x_text(angle = 45)+ xlab("")+
+  scale_y_continuous(breaks = c(0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 250, 275))
+print(p2)
+
+```
+
+`r fig_nums(name = "FIM_hosp_effect_paiwise__WMW_bxp", caption = "Pairwise comparisons for the effective value of the FIM at hospital discharge. ")`
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggsave(filename = file.path("../05_Figures_834", "pairwise boxplots FIM_hosp_effect.eps"), p2, height=6, width=5, units = "in")
+
+```
+
+
+```{r Cuzick FIM_hosp_effect, echo=FALSE, fig.height=6, fig.width=5, message=FALSE, warning=FALSE}
+
+library(ggpubr)
+
+p_FIM_hosp_Cuz <- ggboxplot(icuaw[which(icuaw$MRC_group_char %in% c("severe weakness", "moderate weakness", 
+                                                        "no weakness")), ], 
+          x = "MRC_group_char", y = "FIM_hosp_effect",
+          color = "MRC_group_char",  add = "jitter")+ 
+  ylim(0, 275) + ylab("FIM at hospital discharge") + 
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = NA),
+  panel.grid.major = element_line(colour = "grey85"),
+  panel.ontop = FALSE) +
+  labs(title = FIM_hosp_lab) +
+  rotate_x_text(angle = 45)+ xlab("")+ #  
+  scale_y_continuous(breaks = c(0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 250, 275))
+# print(p2)
+
+```
+
+
+
+
+
+
+```{r pairwise boxplots TUG_hosp, echo=FALSE, fig.height=6, fig.width=5, message=FALSE, warning=FALSE}
+
+icuaw$TUG_hosp <- as.numeric(as.character(icuaw$TUG_hosp))
+p1 <- ggboxplot( icuaw[which(icuaw$MRC_group_char %in% 
+                                           c("severe weakness", "moderate weakness", 
+                                                        "no weakness")), ], 
+          x = "MRC_group_char", y = "TUG_hosp",
+          color = "MRC_group_char",  add = "jitter")+ 
+  ylim(0, 100) + ylab("Timed 'Up and Go' test in seconds") + 
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = NA),
+  panel.grid.major = element_line(colour = "grey85"),
+  panel.ontop = FALSE) +
+  stat_compare_means(comparisons = my_comparisons, label.y = c(66, 70, 74)) + 
+  stat_compare_means(label.y = 80) +
+  rotate_x_text(angle = 45)+ xlab("") +
+  scale_y_continuous(breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90))
+print(p1)
+
+```
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggsave(filename = file.path("../05_Figures_834", "pairwise boxplots TUG_hosp.eps"), p1, height = 6, width = 5, units = "in")
+
+```
+
+`r fig_nums(name = "TUG_hosp_Kruskal_bxp", caption = "Illustration of the effective value of the timed 'Up and Go' test at hospital discharge with non-parametric Kruskal-Wallis test and pairwise Wilcoxon-Mann-Whitney tests ")`
+
+
+
+
+
+```{r Cuzick TUG_hosp, echo=FALSE, fig.height=6, fig.width=5, message=FALSE, warning=FALSE}
+
+p_TUG_hosp_Cuz <- ggboxplot(icuaw[which(icuaw$MRC_group_char %in% c("severe weakness", "moderate weakness", 
+                                                        "no weakness")), ], 
+          x = "MRC_group_char", y = "TUG_hosp",
+          color = "MRC_group_char",  add = "jitter")+ 
+  ylim(0, 100) + ylab("Timed 'Up & Go' Test") + 
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = NA),
+  panel.grid.major = element_line(colour = "grey85"),
+  panel.ontop = FALSE) +
+  labs(title = TUG_hosp_lab) +
+  rotate_x_text(angle = 45)+ xlab("")+ #  
+  scale_y_continuous(breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90))
+# print(p2)
+
+```
+
+
+`r fig_nums(name = "TUG_cuzick_bxp", caption = "Illustration of the effective value of the timed 'Up and Go' test at hospital discharge with non-parametric Cuzick test p-value clearly rejecting the null hypothesis in favour of alternative: severe weakness TUG seconds > no weakness TUG seconds and severe weakness TUG seconds $\\geq$ moderate weakness TUG seconds $\\geq$ no weakness TUG seconds. ")`
+
+
+```{r pairwise boxplots LOS_hosp, fig.height=6, fig.width=5, message=FALSE, warning=FALSE, include=FALSE}
+
+
+p1 <- ggboxplot(icuaw[which(icuaw$MRC_group_char %in% c("severe weakness", "moderate weakness", 
+                                                        "no weakness")), ], 
+          x = "MRC_group_char", y = "LOS_hosp",
+          color = "MRC_group_char",  add = "jitter")+ 
+  ylim(0, 260) + ylab("Length of hospital stay in days") + 
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = NA),
+  panel.grid.major = element_line(colour = "grey85"),
+  panel.ontop = FALSE) +
+  stat_compare_means(comparisons = my_comparisons, label.y = c(210, 225, 240)) + 
+  stat_compare_means(label.y = 260) +
+  rotate_x_text(angle = 45)+ xlab("") +
+  scale_y_continuous(breaks = c(0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 250))
+print(p1)
+
+```
+
+`r fig_nums(name = "LOS_hosp_Kruskal_bxp", caption = "Illustration of the length of hospital stay in days with non-parametric Kruskal-Wallis test and pairwise Wilcoxon-Mann-Whitney tests. ")`
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ggsave(filename = file.path("../05_Figures_834", "pairwise boxplots LOS_hosp.eps"), p1, height=6, width=5, units = "in")
+
+```
+
+
+```{r pairwise boxplots LOS_hosp_ICUdis, echo=FALSE, fig.height=6, fig.width=5, message=FALSE, warning=FALSE}
+
+
+p1 <- ggboxplot(icuaw[which(icuaw$MRC_group_char %in% c("severe weakness", "moderate weakness", 
+                                                        "no weakness")), ], 
+          x = "MRC_group_char", y = "LOS_hosp_ICUdis",
+          color = "MRC_group_char",  add = "jitter")+ 
+  ylim(0, 260) + ylab("Length of hospital stay in days") + 
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = NA),
+  panel.grid.major = element_line(colour = "grey85"),
+  panel.ontop = FALSE) +
+  stat_compare_means(comparisons = my_comparisons, label.y = c(210, 225, 240)) + 
+  stat_compare_means(label.y = 260) +
+  rotate_x_text(angle = 45)+ xlab("") +
+  scale_y_continuous(breaks = c(0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 250))
+print(p1)
+
+```
+
+`r fig_nums(name = "LOS_hosp_ICUdis_Kruskal_bxp", caption = "Illustration of the length of hospital stay after ICU discharge in days with non-parametric Kruskal-Wallis test and pairwise Wilcoxon-Mann-Whitney tests. ")`
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggsave(filename = file.path("../05_Figures_834", "pairwise boxplots LOS_hosp_ICUdis.eps"), p1, height=6, width=5, units = "in")
+
+```
+
+
+## KSK
+```{r pairwise boxplots ksk, echo=FALSE, fig.height=6, fig.width=5, message=FALSE, warning=FALSE}
+
+icuaw$ksk <- as.numeric(as.character(icuaw$ksk))
+p1 <- ggboxplot(icuaw[which(icuaw$MRC_group_char %in% c("severe weakness", "moderate weakness", 
+                                                        "no weakness")), ], 
+          x = "MRC_group_char", y = "ksk",
+          color = "MRC_group_char",  add = "jitter")+ 
+  ylim(0, 260) + ylab("SF-36 physical health sum-score") + 
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = NA),
+  panel.grid.major = element_line(colour = "grey85"),
+  panel.ontop = FALSE) +
+  # stat_compare_means(comparisons = my_comparisons, label.y = c(80, 90, 100)) + 
+  # stat_compare_means(label.y = 110) +
+  labs(title = sprintf("SF-36 physical health sum-score\nCuzick test p-value = %s", pvalTab$pvalue[pvalTab$varname == "ksk"])) +
+  rotate_x_text(angle = 45)+ xlab("") +
+  scale_y_continuous(breaks = c(0, 25, 50, 75))
+print(p1)
+
+```
+
+`r fig_nums(name = "ksk_de_Kruskal_bxp", caption = "Illustration of the KSK with non-parametric Kruskal-Wallis test and pairwise Wilcoxon-Mann-Whitney tests. ")`
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggsave(filename = file.path("../05_Figures_834", "pairwise boxplots ksk.eps"), p1, height=6, width=5, units = "in")
+
+```
+## KSK (DE)
+```{r pairwise boxplots ksk_de, echo=FALSE, fig.height=6, fig.width=5, message=FALSE, warning=FALSE}
+
+icuaw$ksk_de <- as.numeric(as.character(icuaw$ksk_de))
+p1 <- ggboxplot(icuaw[which(icuaw$MRC_group_char %in% c("severe weakness", "moderate weakness", 
+                                                        "no weakness")), ], 
+          x = "MRC_group_char", y = "ksk_de",
+          color = "MRC_group_char",  add = "jitter")+ 
+  ylim(0, 260) + ylab("SF-36 physical health sum-score (DE-1994)") + 
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = NA),
+  panel.grid.major = element_line(colour = "grey85"),
+  panel.ontop = FALSE) +
+  # stat_compare_means(comparisons = my_comparisons, label.y = c(80, 90, 100)) + 
+  # stat_compare_means(label.y = 110) +
+  labs(title = sprintf("SF-36 physical health sum-score (DE-1994)\nCuzick test p-value = %s", pvalTab$pvalue[pvalTab$varname == "ksk_de"])) + 
+  rotate_x_text(angle = 45)+ xlab("") +
+  scale_y_continuous(breaks = c(0, 25, 50, 75))
+print(p1)
+
+```
+
+`r fig_nums(name = "ksk_de_Kruskal_bxp", caption = "Illustration of the KSK (DE) with non-parametric Kruskal-Wallis test and pairwise Wilcoxon-Mann-Whitney tests. ")`
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggsave(filename = file.path("../05_Figures_834", "pairwise boxplots ksk_de.eps"), p1, height=6, width=5, units = "in")
+
+```
+## PSK 
+```{r pairwise boxplots psk, echo=FALSE, fig.height=6, fig.width=5, message=FALSE, warning=FALSE}
+
+icuaw$psk <- as.numeric(as.character(icuaw$psk))
+p1 <- ggboxplot(icuaw[which(icuaw$MRC_group %in% c(1,2,3)), ], 
+          x = "MRC_group_char", y = "psk",
+          color = "MRC_group_char",  add = "jitter")+ 
+  ylim(0, 260) + ylab("SF-36 mental health sum-score") + 
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = NA),
+  panel.grid.major = element_line(colour = "grey85"),
+  panel.ontop = FALSE) +
+  # stat_compare_means(comparisons = my_comparisons, label.y = c(80, 90, 100)) + 
+  # stat_compare_means(label.y = 110) +
+  labs(title = sprintf("SF-36 mental health sum-score\nCuzick test p-value = %s", pvalTab$pvalue[pvalTab$varname == "psk"])) +
+  rotate_x_text(angle = 45)+ xlab("") +
+  scale_y_continuous(breaks = c(0, 25, 50, 75))
+print(p1)
+
+```
+
+`r fig_nums(name = "psk_Kruskal_bxp", caption = "Illustration of the PSK with non-parametric Kruskal-Wallis test and pairwise Wilcoxon-Mann-Whitney tests. ")`
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggsave(filename = file.path("../05_Figures_834", "pairwise boxplots psk.eps"), p1, height=6, width=5, units = "in")
+
+```
+
+## PSK (DE)
+```{r pairwise boxplots psk_de, echo=FALSE, fig.height=6, fig.width=5, message=FALSE, warning=FALSE}
+
+icuaw$psk_de <- as.numeric(as.character(icuaw$psk_de))
+
+p1 <- ggboxplot(icuaw[which(icuaw$MRC_group %in% c(1,2,3)), ], 
+          x = "MRC_group_char", y = "psk_de",
+          color = "MRC_group_char",  add = "jitter")+ 
+  ylim(0, 260) + ylab("SF-36 mental health sum-score (DE-1994)") + 
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = NA),
+  panel.grid.major = element_line(colour = "grey85"),
+  panel.ontop = FALSE) +
+  # stat_compare_means(comparisons = my_comparisons, label.y = c(80, 90, 100)) + 
+  # stat_compare_means(label.y = 110) +
+  labs(title = sprintf("SF-36 mental health sum-score (DE-1994)\nCuzick test p-value = %s", pvalTab$pvalue[pvalTab$varname == "psk_de"])) +
+  rotate_x_text(angle = 45)+ xlab("") +
+  scale_y_continuous(breaks = c(0, 25, 50, 75))
+print(p1)
+
+```
+
+`r fig_nums(name = "psk_de_Kruskal_bxp", caption = "Illustration of the PSK (DE) with non-parametric Kruskal-Wallis test and pairwise Wilcoxon-Mann-Whitney tests. ")`
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggsave(filename = file.path("../05_Figures_834", "pairwise boxplots psk_de.eps"), p1, height=6, width=5, units = "in")
+
+```
+
+
+
+
+
+```{r Cuzick LOS_hosp, echo=FALSE, fig.height=10, fig.width=9, message=FALSE, warning=FALSE}
+
+library(ggpubr)
+
+p_LOS_hosp_Cuz <- ggboxplot(icuawm, 
+          x = "MRC_group_char", y = "LOS_hosp_ICUdis",
+          color = "MRC_group_char",  add = "jitter")+ 
+  ylim(0, 260) + ylab("Length of hospital stay in days") + 
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = NA),
+  panel.grid.major = element_line(colour = "grey85"),
+  panel.ontop = FALSE) +
+  labs(title = LOS_hosp_lab) +
+  rotate_x_text(angle = 45)+ xlab("")+ #  
+  scale_y_continuous(breaks =  c(0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 250))
+# print(p2)
+
+library(cowplot)
+cowplot::plot_grid(p_six_MWT_cuz, p_FIM_hosp_Cuz, p_TUG_hosp_Cuz, 
+                   p_LOS_hosp_Cuz, labels = c("(a)", "(b)", "(c)", "(d)"), ncol = 2)
+
+ggsave(filename = file.path("../05_Figures_834", "p_six_MWT_cuz.eps"), p_six_MWT_cuz, height=6, width=5, units = "in")
+ggsave(filename = file.path("../05_Figures_834", "p_FIM_hosp_Cuz.eps"), p_FIM_hosp_Cuz, height=6, width=5, units = "in")
+ggsave(filename = file.path("../05_Figures_834", "p_TUG_hosp_Cuz.eps"), p_TUG_hosp_Cuz, height=6, width=5, units = "in")
+ggsave(filename = file.path("../05_Figures_834", "p_LOS_hosp_Cuz.eps"), p_LOS_hosp_Cuz, height=6, width=5, units = "in")
+
+
+```
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggsave(filename = file.path("../05_Figures_834", "Cuzick LOS_hosp.eps"), height=10, width=9, units = "in")
+
+```
+
+
+`r fig_nums(name = "cuzick_bxp", caption = "Cuzick test illustrations for (a) 6 Minute Walking Distance in meters at hospital discharge; (b) FIM at hospital discharge; (c) Timed 'Up and Go test'; (d) Length of hospital stay after ICU discharge in days. In (a) and (b) the null hypothesis is rejected in favour of alternative:  severe weakness values > no weakness values and severe weakness values $\\geq$ moderate weakness values $\\geq$ no weakness values. In (c) and (d) the null hypothesis is rejected in favour of alternative: severe weakness values < no weakness values and severe weakness values $\\leq$ moderate weakness values $\\leq$ no weakness values.")`
+
+
+
+
+
+
+
+
+### Risk factors table (MRC-SS)
+
+```{r lm table, echo=FALSE, message=FALSE, warning=FALSE}
+
+icuaw$rand_group <- as.factor(icuaw$rand_group)
+icuaw$Bed_EOB_OOB <- as.factor(icuaw$Bed_EOB_OOB)
+icuaw$ADL_restr <- as.factor(icuaw$ADL_restr)
+
+icuaw <- within(icuaw, Bed_EOB_OOB <- relevel(Bed_EOB_OOB, ref = "3"))
+
+icuaw$MRC_SS_last <- as.numeric(as.character(icuaw$MRC_SS_last))
+
+adj_r.lm <- lm(MRC_SS_last ~ rand_group + sex + sofa_score + LOS_ICU_Insel_W + ADL_restr + Bed_EOB_OOB, data = icuaw)
+# summary(adj_r.lm)
+n.adj_r.lm <- length(adj_r.lm$fitted.values)
+
+
+adj_wt_adl.lm <- lm(MRC_SS_last ~ rand_group + sex + sofa_score + LOS_ICU_Insel_W + Bed_EOB_OOB, data = icuaw)
+# summary(adj_wt_adl.lm)
+n.adj_wt_adl.lm <- length(adj_wt_adl.lm$fitted.values)
+
+library(robust)
+adj_r.lmR <- lmRob(MRC_SS_last ~ rand_group + sex + sofa_score + LOS_ICU_Insel_W + ADL_restr + Bed_EOB_OOB, data = icuaw)
+# summary(adj_r.lmR)
+
+adj_wtr.lm <- lm(MRC_SS_last ~ sex + sofa_score + LOS_ICU_Insel_W + ADL_restr + Bed_EOB_OOB, data = icuaw)
+n.adj_wtr.lm <- length(adj_wtr.lm$fitted.values)
+
+adj_wtr.lmR <- lmRob(MRC_SS_last ~ sex + sofa_score + LOS_ICU_Insel_W + ADL_restr + Bed_EOB_OOB, data = icuaw)
+# summary(adj_wtr.lmR)
+
+library(mgcv)
+adj_wtr.gam <- gam(MRC_SS_last ~ sex +  s(LOS_ICU_Insel_W) + Bed_EOB_OOB, data = icuaw ) 
+# summary(adj_wtr.gam)
+
+
+crude_sex <- lm(MRC_SS_last ~ sex, data = icuaw)
+n.crude_sex <- length(crude_sex$fitted.values)
+
+crude_sofa <- lm(MRC_SS_last ~ sofa_score, data = icuaw)
+n.crude_sofa <- length(crude_sofa$fitted.values)
+
+crude_los <- lm(MRC_SS_last ~ LOS_ICU_Insel_W, data = icuaw)
+n.crude_los <- length(crude_los$fitted.values)
+
+crude_adl <- lm(MRC_SS_last ~ ADL_restr, data = icuaw)
+n.crude_adl <- length(crude_adl$fitted.values)
+
+crude_bed_eob <- lm(MRC_SS_last ~ Bed_EOB_OOB, data = icuaw)
+n.crude_bed_eob <- length(crude_bed_eob$fitted.values)
+
+crude_rand <- lm(MRC_SS_last ~ rand_group, data = icuaw)
+n.crude_rand <- length(crude_rand$fitted.values)
+
+library(sjPlot)
+source("my_tab_model.R")
+# eGFR- Omega3 index continuous tables
+# 
+sex.tab <- my_tab_model(crude_sex, adj_r.lm, adj_wtr.lm, adj_wt_adl.lm, 
+                      terms = c("sexmale"),
+                      pred.labels = c("male"),
+                      dv.labels = c("Crude", "Adjusted with randomization group",
+                                    "Adjusted without randomization group", "Adjusted without ADL"),
+                      string.ci = c("95%-CI"),
+                      string.p = "p-value")
+sex.tab$n_1 <- n.crude_sex
+sex.tab$n_2 <- n.adj_r.lm
+sex.tab$n_3 <- n.adj_wtr.lm
+sex.tab$n_4 <- n.adj_wt_adl.lm
+
+sex.tab <- rbind(c("female", "Reference","","", "Reference","","", "Reference","","","Reference","","", "","","", ""), sex.tab)
+sex.tab <- rbind(c("Sex", "","","", "","","", "","","","","","", "","","", ""), sex.tab)
+
+
+rand.tab <- my_tab_model(crude_rand, adj_r.lm, adj_wtr.lm, adj_wt_adl.lm,
+                      terms = c("rand_groupyes"),
+                      pred.labels = c("experimental group"),
+                      dv.labels = c("Crude", "Adjusted with randomization group",
+                                    "Adjusted without randomization group", "Adjusted without ADL"),
+                      string.ci = c("95%-CI"),
+                      string.p = "p-value")
+rand.tab$n_1 <- n.crude_rand
+rand.tab$n_2 <- n.adj_r.lm
+rand.tab$n_3 <- n.adj_wtr.lm
+rand.tab$n_4 <- n.adj_wt_adl.lm
+
+rand.tab <- rbind(c("control group", "Reference", "", "", "Reference", "",  "", "Reference","","","Reference", "","","","","", ""), rand.tab)
+rand.tab <- rbind(c("Randomized group", "", "", "", "", "",  "", "","","","", "","","","","", ""), rand.tab)
+
+sofa.tab <- my_tab_model(crude_sofa, adj_r.lm, adj_wtr.lm, adj_wt_adl.lm,
+                      terms = c("sofa_score"),
+                      pred.labels = c("SOFA score"),
+                      dv.labels = c("Crude", "Adjusted with randomization group",
+                                    "Adjusted without randomization group", "Adjusted without ADL"),
+                      string.ci = c("95%-CI"),
+                      string.p = "p-value")
+sofa.tab$n_1 <- n.crude_sofa
+sofa.tab$n_2 <- n.adj_r.lm
+sofa.tab$n_3 <- n.adj_wtr.lm
+sofa.tab$n_4 <- n.adj_wt_adl.lm
+
+
+los.tab <- my_tab_model(crude_los, adj_r.lm, adj_wtr.lm, adj_wt_adl.lm,
+                      terms = c("LOS_ICU_Insel_W"),
+                      pred.labels = c("Length of stay at ICU Inselspital (days)"),
+                      dv.labels = c("Crude", "Adjusted with randomization group",
+                                    "Adjusted without randomization group", "Adjusted without ADL"),
+                      string.ci = c("95%-CI"),
+                      string.p = "p-value")
+los.tab$n_1 <- n.crude_los
+los.tab$n_2 <- n.adj_r.lm
+los.tab$n_3 <- n.adj_wtr.lm
+los.tab$n_4 <- n.adj_wt_adl.lm
+
+
+adl.tab <- my_tab_model(crude_adl, adj_r.lm, adj_wtr.lm, adj_wt_adl.lm,
+                      terms = c("ADL_restryes"), #c("ADL_restr1"),# 
+                      pred.labels = c("Restricted in activities of daily living"),
+                      dv.labels = c("Crude", "Adjusted with randomization group",
+                                    "Adjusted without randomization group", "Adjusted without ADL"),
+                      string.ci = c("95%-CI"),
+                      string.p = "p-value")
+adl.tab$n_1 <- n.crude_adl
+adl.tab$n_2 <- n.adj_r.lm
+adl.tab$n_3 <- n.adj_wtr.lm
+adl.tab$n_4 <- n.adj_wt_adl.lm
+adl.tab <- rbind(c("Not restricted in activities of daily living", 
+                   "Reference", "", "", "Reference", "",  "", 
+                   "Reference", "",  "", "Reference", "",  "", "", "", "", ""), adl.tab)
+adl.tab <- rbind(c("Not restricted in activities of daily living", 
+                   "", "", "", "", "",  "", 
+                   "", "",  "", "", "",  "", "", "", "", ""), adl.tab)
+
+bed_eob.tab <- my_tab_model(crude_bed_eob, adj_r.lm, adj_wtr.lm, adj_wt_adl.lm,
+                      terms = c("Bed_EOB_OOB1", "Bed_EOB_OOB2"),
+                      pred.labels = c("bed", "edge of bed"),
+                      dv.labels = c("Crude", "Adjusted with randomization group",
+                                    "Adjusted without randomization group", "Adjusted without ADL"),
+                      string.ci = c("95%-CI"),
+                      string.p = "p-value")
+
+bed_eob.tab$n_1 <- n.crude_bed_eob
+bed_eob.tab$n_2 <- n.adj_r.lm
+bed_eob.tab$n_3 <- n.adj_wtr.lm
+bed_eob.tab$n_4 <- n.adj_wt_adl.lm
+
+bed_eob.tab <- rbind(c("Out of bed", 
+                   "Reference", "", "", "Reference", "",  "", 
+                   "Reference", "",  "", "Reference", "",  "", "", "", "", ""), bed_eob.tab)
+bed_eob.tab <- rbind(c("Mobilisation level in ICU", 
+                   "", "", "", "", "",  "", 
+                   "", "",  "", "", "",  "", "", "", "", ""), bed_eob.tab)
+
+
+av <- anova(crude_bed_eob, update(crude_bed_eob, .~. -Bed_EOB_OOB))
+bed_eob.tab$p.value_1[1] <- sprintf("%1.3f", av$`Pr(>F)`[2])
+av <- anova(adj_r.lm, update(adj_r.lm, .~. -Bed_EOB_OOB))
+bed_eob.tab$p.value_2[1] <- sprintf("%1.3f", av$`Pr(>F)`[2])
+av <- anova(adj_wtr.lm, update(adj_wtr.lm, .~. -Bed_EOB_OOB))
+bed_eob.tab$p.value_3[1] <- sprintf("%1.3f", av$`Pr(>F)`[2])
+av <- anova(adj_wt_adl.lm, update(adj_wt_adl.lm, .~. -Bed_EOB_OOB))
+bed_eob.tab$p.value_4[1] <- sprintf("%1.3f", av$`Pr(>F)`[2])
+
+common.tab <- rbind( sex.tab, rand.tab, sofa.tab, los.tab, adl.tab, bed_eob.tab )
+common.tab$estimate_1 <- ifelse(common.tab$conf.int_1=="", 
+                                common.tab$estimate_1, 
+                                paste0(common.tab$estimate_1, " (", common.tab$conf.int_1, ")"))
+common.tab$estimate_2 <- ifelse(common.tab$conf.int_2=="", 
+                                common.tab$estimate_2, 
+                                paste0(common.tab$estimate_2, " (", common.tab$conf.int_2, ")"))
+common.tab$estimate_3 <- ifelse(common.tab$conf.int_3=="", 
+                                common.tab$estimate_3, 
+                                paste0(common.tab$estimate_3, " (", common.tab$conf.int_3, ")"))
+common.tab$estimate_4 <- ifelse(common.tab$conf.int_4=="", 
+                                common.tab$estimate_4, 
+                                paste0(common.tab$estimate_4, " (", common.tab$conf.int_4, ")"))
+
+common.tab <- common.tab[ ,c("term", "n_1","estimate_1", "p.value_1", 
+                                       "n_2","estimate_2", "p.value_2", 
+                             "n_3","estimate_3", "p.value_3",
+                             "n_4","estimate_4", "p.value_4")]
+# common.tab$estimate_1 <- gsub("&ndash;", "to ", common.tab$estimate_1)
+# common.tab$estimate_1 <- gsub(" \\(\\)", "", common.tab$estimate_1)
+# common.tab$estimate_2 <- gsub("&ndash;", "to ", common.tab$estimate_2)
+# common.tab$estimate_2 <- gsub(" \\(\\)", "", common.tab$estimate_2)
+# common.tab$estimate_3 <- gsub("&ndash;", "to ", common.tab$estimate_3)
+# common.tab$estimate_3 <- gsub(" \\(\\)", "", common.tab$estimate_3)
+
+knitr::kable(common.tab, row.names = FALSE, digits = 3, 
+             col.names = c("", "n", "Crude effect (95% CI)", "P-value", 
+                           "n", "Adjusted effect (95% CI)", "P-value", 
+                           "n", "Adjusted effect without randomization group (95% CI)", "P-value",
+                           "n", "Adjusted effect without ADL (95% CI)", "P-value"))
+
+```
+
+`r table_nums(name = "risks_tab", caption = "Significance of some variables in a regression models with MRC-SS as response. Crude regression is just response (MRC-SS) and corresponding explanatory variable. Adjusted regression includes all listed explanatory variables either with or without randomization group; with or without ADL (Activities of Daily Living) variable. The robust estimations give the same results as shown with non-significant bias' tests (with the null: presence of the bias due to lack of robustness or outlying observations). None of the term revealed non-linearity when fitting an additive model with non-linear dependance (via penalized splines) on explanatory variables. ")`
+
+
+
+### Risk factors table (6MWT)
+
+```{r lm table 6mwt, echo=FALSE, message=FALSE, warning=FALSE}
+
+adj_r.lm <- lm(six_MWT_effect ~ rand_group + sex + sofa_score + LOS_ICU_Insel_W + ADL_restr + Bed_EOB_OOB, data = icuaw)
+# summary(adj_r.lm)
+n.adj_r.lm <- length(adj_r.lm$fitted.values)
+
+
+adj_wt_adl.lm <- lm(six_MWT_effect ~ rand_group + sex + sofa_score + LOS_ICU_Insel_W + Bed_EOB_OOB, data = icuaw)
+# summary(adj_wt_adl.lm)
+n.adj_wt_adl.lm <- length(adj_wt_adl.lm$fitted.values)
+
+library(robust)
+adj_r.lmR <- lmRob(six_MWT_effect ~ rand_group + sex + sofa_score + LOS_ICU_Insel_W + ADL_restr + Bed_EOB_OOB, data = icuaw)
+# summary(adj_r.lmR)
+
+adj_wtr.lm <- lm(six_MWT_effect ~ sex + sofa_score + LOS_ICU_Insel_W + ADL_restr + Bed_EOB_OOB, data = icuaw)
+n.adj_wtr.lm <- length(adj_wtr.lm$fitted.values)
+
+adj_wtr.lmR <- lmRob(six_MWT_effect ~ sex + sofa_score + LOS_ICU_Insel_W + ADL_restr + Bed_EOB_OOB, data = icuaw)
+# summary(adj_wtr.lmR)
+
+library(mgcv)
+adj_wtr.gam <- gam(six_MWT_effect ~ sex +  s(LOS_ICU_Insel_W) + Bed_EOB_OOB, data = icuaw ) 
+# summary(adj_wtr.gam)
+
+
+crude_sex <- lm(six_MWT_effect ~ sex, data = icuaw)
+n.crude_sex <- length(crude_sex$fitted.values)
+
+crude_sofa <- lm(six_MWT_effect ~ sofa_score, data = icuaw)
+n.crude_sofa <- length(crude_sofa$fitted.values)
+
+crude_los <- lm(six_MWT_effect ~ LOS_ICU_Insel_W, data = icuaw)
+n.crude_los <- length(crude_los$fitted.values)
+
+crude_adl <- lm(six_MWT_effect ~ ADL_restr, data = icuaw)
+n.crude_adl <- length(crude_adl$fitted.values)
+
+crude_bed_eob <- lm(six_MWT_effect ~ Bed_EOB_OOB, data = icuaw)
+n.crude_bed_eob <- length(crude_bed_eob$fitted.values)
+
+crude_rand <- lm(six_MWT_effect ~ rand_group, data = icuaw)
+n.crude_rand <- length(crude_rand$fitted.values)
+
+sex.tab <- my_tab_model(crude_sex, adj_r.lm, adj_wtr.lm, adj_wt_adl.lm, 
+                      terms = c("sexmale"),
+                      pred.labels = c("male"),
+                      dv.labels = c("Crude", "Adjusted with randomization group",
+                                    "Adjusted without randomization group", "Adjusted without ADL"),
+                      string.ci = c("95%-CI"),
+                      string.p = "p-value")
+sex.tab$n_1 <- n.crude_sex
+sex.tab$n_2 <- n.adj_r.lm
+sex.tab$n_3 <- n.adj_wtr.lm
+sex.tab$n_4 <- n.adj_wt_adl.lm
+
+sex.tab <- rbind(c("female", "Reference","","", "Reference","","", "Reference","","","Reference","","", "","","", ""), sex.tab)
+sex.tab <- rbind(c("Sex", "","","", "","","", "","","","","","", "","","", ""), sex.tab)
+
+
+rand.tab <- my_tab_model(crude_rand, adj_r.lm, adj_wtr.lm, adj_wt_adl.lm,
+                      terms = c("rand_groupyes"),
+                      pred.labels = c("experimental group"),
+                      dv.labels = c("Crude", "Adjusted with randomization group",
+                                    "Adjusted without randomization group", "Adjusted without ADL"),
+                      string.ci = c("95%-CI"),
+                      string.p = "p-value")
+rand.tab$n_1 <- n.crude_rand
+rand.tab$n_2 <- n.adj_r.lm
+rand.tab$n_3 <- n.adj_wtr.lm
+rand.tab$n_4 <- n.adj_wt_adl.lm
+
+rand.tab <- rbind(c("control group", "Reference", "", "", "Reference", "",  "", "Reference","","","Reference", "","","","","", ""), rand.tab)
+rand.tab <- rbind(c("Randomized group", "", "", "", "", "",  "", "","","","", "","","","","", ""), rand.tab)
+
+sofa.tab <- my_tab_model(crude_sofa, adj_r.lm, adj_wtr.lm, adj_wt_adl.lm,
+                      terms = c("sofa_score"),
+                      pred.labels = c("SOFA score"),
+                      dv.labels = c("Crude", "Adjusted with randomization group",
+                                    "Adjusted without randomization group", "Adjusted without ADL"),
+                      string.ci = c("95%-CI"),
+                      string.p = "p-value")
+sofa.tab$n_1 <- n.crude_sofa
+sofa.tab$n_2 <- n.adj_r.lm
+sofa.tab$n_3 <- n.adj_wtr.lm
+sofa.tab$n_4 <- n.adj_wt_adl.lm
+
+
+los.tab <- my_tab_model(crude_los, adj_r.lm, adj_wtr.lm, adj_wt_adl.lm,
+                      terms = c("LOS_ICU_Insel_W"),
+                      pred.labels = c("Length of stay at ICU Inselspital (days)"),
+                      dv.labels = c("Crude", "Adjusted with randomization group",
+                                    "Adjusted without randomization group", "Adjusted without ADL"),
+                      string.ci = c("95%-CI"),
+                      string.p = "p-value")
+los.tab$n_1 <- n.crude_los
+los.tab$n_2 <- n.adj_r.lm
+los.tab$n_3 <- n.adj_wtr.lm
+los.tab$n_4 <- n.adj_wt_adl.lm
+
+
+adl.tab <- my_tab_model(crude_adl, adj_r.lm, adj_wtr.lm, adj_wt_adl.lm,
+                      terms = c("ADL_restryes"), #c("ADL_restr1"),# 
+                      pred.labels = c("Restricted in activities of daily living"),
+                      dv.labels = c("Crude", "Adjusted with randomization group",
+                                    "Adjusted without randomization group", "Adjusted without ADL"),
+                      string.ci = c("95%-CI"),
+                      string.p = "p-value")
+adl.tab$n_1 <- n.crude_adl
+adl.tab$n_2 <- n.adj_r.lm
+adl.tab$n_3 <- n.adj_wtr.lm
+adl.tab$n_4 <- n.adj_wt_adl.lm
+adl.tab <- rbind(c("Not restricted in activities of daily living", 
+                   "Reference", "", "", "Reference", "",  "", 
+                   "Reference", "",  "", "Reference", "",  "", "", "", "", ""), adl.tab)
+adl.tab <- rbind(c("Not restricted in activities of daily living", 
+                   "", "", "", "", "",  "", 
+                   "", "",  "", "", "",  "", "", "", "", ""), adl.tab)
+
+
+bed_eob.tab <- my_tab_model(crude_bed_eob, adj_r.lm, adj_wtr.lm, adj_wt_adl.lm,
+                      terms = c("Bed_EOB_OOB1", "Bed_EOB_OOB2"),
+                      pred.labels = c("bed", "edge of bed"),
+                      dv.labels = c("Crude", "Adjusted with randomization group",
+                                    "Adjusted without randomization group", "Adjusted without ADL"),
+                      string.ci = c("95%-CI"),
+                      string.p = "p-value")
+
+bed_eob.tab$n_1 <- n.crude_bed_eob
+bed_eob.tab$n_2 <- n.adj_r.lm
+bed_eob.tab$n_3 <- n.adj_wtr.lm
+bed_eob.tab$n_4 <- n.adj_wt_adl.lm
+
+bed_eob.tab <- rbind(c("Out-of-bed", 
+                   "Reference", "", "", "Reference", "",  "", 
+                   "Reference", "",  "", "Reference", "",  "", "", "", "", ""), bed_eob.tab)
+bed_eob.tab <- rbind(c("Mobilisation level in ICU", 
+                   "", "", "", "", "",  "", 
+                   "", "",  "", "", "",  "", "", "", "", ""), bed_eob.tab)
+
+
+av <- anova(crude_bed_eob, update(crude_bed_eob, .~. -Bed_EOB_OOB))
+bed_eob.tab$p.value_1[1] <- sprintf("%1.3f", av$`Pr(>F)`[2])
+av <- anova(adj_r.lm, update(adj_r.lm, .~. -Bed_EOB_OOB))
+bed_eob.tab$p.value_2[1] <- sprintf("%1.3f", av$`Pr(>F)`[2])
+av <- anova(adj_wtr.lm, update(adj_wtr.lm, .~. -Bed_EOB_OOB))
+bed_eob.tab$p.value_3[1] <- sprintf("%1.3f", av$`Pr(>F)`[2])
+av <- anova(adj_wt_adl.lm, update(adj_wt_adl.lm, .~. -Bed_EOB_OOB))
+bed_eob.tab$p.value_4[1] <- sprintf("%1.3f", av$`Pr(>F)`[2])
+
+common.tab <- rbind( sex.tab, rand.tab, sofa.tab, los.tab, adl.tab, bed_eob.tab )
+common.tab$estimate_1 <- ifelse(common.tab$conf.int_1=="", 
+                                common.tab$estimate_1, 
+                                paste0(common.tab$estimate_1, " (", common.tab$conf.int_1, ")"))
+common.tab$estimate_2 <- ifelse(common.tab$conf.int_2=="", 
+                                common.tab$estimate_2, 
+                                paste0(common.tab$estimate_2, " (", common.tab$conf.int_2, ")"))
+common.tab$estimate_3 <- ifelse(common.tab$conf.int_3=="", 
+                                common.tab$estimate_3, 
+                                paste0(common.tab$estimate_3, " (", common.tab$conf.int_3, ")"))
+common.tab$estimate_4 <- ifelse(common.tab$conf.int_4=="", 
+                                common.tab$estimate_4, 
+                                paste0(common.tab$estimate_4, " (", common.tab$conf.int_4, ")"))
+
+common.tab <- common.tab[ ,c("term", "n_1","estimate_1", "p.value_1", 
+                                       "n_2","estimate_2", "p.value_2", 
+                             "n_3","estimate_3", "p.value_3",
+                             "n_4","estimate_4", "p.value_4")]
+# common.tab$estimate_1 <- gsub("&ndash;", "to ", common.tab$estimate_1)
+# common.tab$estimate_1 <- gsub(" \\(\\)", "", common.tab$estimate_1)
+# common.tab$estimate_2 <- gsub("&ndash;", "to ", common.tab$estimate_2)
+# common.tab$estimate_2 <- gsub(" \\(\\)", "", common.tab$estimate_2)
+# common.tab$estimate_3 <- gsub("&ndash;", "to ", common.tab$estimate_3)
+# common.tab$estimate_3 <- gsub(" \\(\\)", "", common.tab$estimate_3)
+
+knitr::kable(common.tab, row.names = FALSE, digits = 3, 
+             col.names = c("", "n", "Crude effect (95% CI)", "P-value", 
+                           "n", "Adjusted effect (95% CI)", "P-value", 
+                           "n", "Adjusted effect without randomization group (95% CI)", "P-value",
+                           "n", "Adjusted effect without ADL (95% CI)", "P-value"))
+
+```
+
+`r table_nums(name = "risks_tab2", caption = "Significance of some variables in a regression models with MRC-SS as response. Crude regression is just response (6MWT) and corresponding explanatory variable. Adjusted regression includes all listed explanatory variables either with or without randomization group; with or without ADL (Activities of Daily Living) variable. The robust estimations give the same results as shown with non-significant bias' tests (with the null: presence of the bias due to lack of robustness or outlying observations). None of the term revealed non-linearity when fitting an additive model with non-linear dependance (via penalized splines) on explanatory variables. ")`
+
+
+
+```{r session info, echo=FALSE, message=FALSE, warning=FALSE}
+sessionInfo()
+```
+
+
+
