@@ -10,6 +10,7 @@ output: word_document
 rm(list = ls())
 xlsToRead <- "../01_Original_data_834/minDta.xlsx" 
 # please use the data you get on BORIS under 
+# https://boris.unibe.ch/id/eprint/140381
 
 icuaw <- openxlsx::read.xlsx(xlsxFile = xlsToRead, sheet = 1, 
                                 colNames = TRUE, na.strings = "")
@@ -1407,6 +1408,7 @@ knitr::kable(common.tab, row.names = FALSE, digits = 3,
 ```{r session info, echo=FALSE, message=FALSE, warning=FALSE}
 sessionInfo()
 ```
+
 
 
 
